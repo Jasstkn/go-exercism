@@ -1,7 +1,7 @@
 package luhn
 
 import (
-	"strconv"
+	"errors"
 	"strings"
 )
 
@@ -9,17 +9,21 @@ func isValidInput(id string) bool {
 	return len(id) > 1
 }
 
-func calculateNumber(v int, pos int) int {
-	number := 0
-	if pos%2 == 0 {
-		number = 2 * v
-	} else {
-		number = v
+func calculateNumber(v byte, pos int) (int, error) {
+	if v >= '0' && v <= '9' {
+		number := 0
+		if pos%2 == 0 {
+			number = 2 * int(v-'0')
+		} else {
+			number = int(v - '0')
+		}
+		if number > 9 {
+			number -= 9
+		}
+		return number, nil
 	}
-	if number > 9 {
-		number -= 9
-	}
-	return number
+
+	return 0, errors.New("non-digit characters are disallowed")
 }
 
 func Valid(id string) bool {
@@ -30,15 +34,13 @@ func Valid(id string) bool {
 	}
 
 	sum := 0
-
 	for i := len(id) - 1; i >= 0; i-- {
-		// process only numbers
-		v, err := strconv.Atoi(string(id[i]))
+		// calculate number to be summed
+		num, err := calculateNumber(id[i], len(id)-i)
 		if err != nil {
 			return false
 		}
-		// calculate number to be summed
-		sum += calculateNumber(v, len(id)-i)
+		sum += num
 	}
 
 	return sum%10 == 0
