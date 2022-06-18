@@ -4,52 +4,47 @@ type Ints []int
 type Lists [][]int
 type Strings []string
 
-func (i Ints) Keep(filter func(int) bool) Ints {
+func (i Ints) Keep(filter func(int) bool) (out Ints) {
 	if i == nil {
 		return Ints(nil)
 	}
-	res := Ints{}
+
 	for _, num := range i {
 		if filter(num) {
-			res = append(res, num)
+			out = append(out, num)
 		}
 	}
-	return res
+	return out
 }
 
-func (i Ints) Discard(filter func(int) bool) Ints {
+func (i Ints) Discard(filter func(int) bool) (out Ints) {
 	if i == nil {
 		return Ints(nil)
 	}
-	res := Ints{}
 	for _, num := range i {
 		if !filter(num) {
-			res = append(res, num)
+			out = append(out, num)
 		}
 	}
-	return res
+	return out
 }
 
-func (l Lists) Keep(filter func([]int) bool) Lists {
-	res := Lists{}
-
+func (l Lists) Keep(filter func([]int) bool) (out Lists) {
 	for _, v := range l {
 		if filter(v) {
-			res = append(res, v)
+			out = append(out, v)
 		}
 	}
 
-	return res
+	return out
 }
 
-func (s Strings) Keep(filter func(string) bool) Strings {
-	res := Strings{}
-
+func (s Strings) Keep(filter func(string) bool) (out Strings) {
 	for _, v := range s {
 		if filter(v) {
-			res = append(res, v)
+			out = append(out, v)
 		}
 	}
 
-	return res
+	return out
 }
