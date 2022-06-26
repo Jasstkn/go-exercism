@@ -1,77 +1,61 @@
 package twelve
 
 import (
-	"fmt"
 	"strings"
 )
 
-var days = [...]string{
-	"first",
-	"second",
-	"third",
-	"fourth",
-	"fifth",
-	"sixth",
-	"seventh",
-	"eighth",
-	"ninth",
-	"tenth",
-	"eleventh",
-	"twelfth",
+type gift struct {
+	day      string
+	quantity string
+	giftName string
 }
 
-var count = [...]string{
-	"one",
-	"two",
-	"three",
-	"four",
-	"five",
-	"six",
-	"seven",
-	"eight",
-	"nine",
-	"ten",
-	"eleven",
-	"twelve",
-}
-
-var gifts = [...]string{
-	"a Partridge in a Pear Tree",
-	"Turtle Doves",
-	"French Hens",
-	"Calling Birds",
-	"Gold Rings",
-	"Geese-a-Laying",
-	"Swans-a-Swimming",
-	"Maids-a-Milking",
-	"Ladies Dancing",
-	"Lords-a-Leaping",
-	"Pipers Piping",
-	"Drummers Drumming",
+var gifts = []gift{
+	{"first", "one", "a Partridge in a Pear Tree"},
+	{"second", "two", "Turtle Doves"},
+	{"third", "three", "French Hens"},
+	{"fourth", "four", "Calling Birds"},
+	{"fifth", "five", "Gold Rings"},
+	{"sixth", "six", "Geese-a-Laying"},
+	{"seventh", "seven", "Swans-a-Swimming"},
+	{"eighth", "eight", "Maids-a-Milking"},
+	{"ninth", "nine", "Ladies Dancing"},
+	{"tenth", "ten", "Lords-a-Leaping"},
+	{"eleventh", "eleven", "Pipers Piping"},
+	{"twelfth", "twelve", "Drummers Drumming"},
 }
 
 func getGifts(i int, str string) string {
 	if i == 1 && str == "" {
-		return fmt.Sprintf(" %s.", gifts[0])
+		return " " + gifts[0].giftName + "."
 	}
 	if i == 1 && str != "" {
-		return fmt.Sprintf("%s and %s.", str, gifts[0])
+		return str + " and " + gifts[0].giftName + "."
 	}
-	return getGifts(i-1, fmt.Sprintf("%s %s %s,", str, count[i-1], gifts[i-1]))
+	return getGifts(i-1, str+" "+gifts[i-1].quantity+" "+gifts[i-1].giftName+",")
 }
 
 func Verse(i int) string {
-	return fmt.Sprintf("On the %s day of Christmas my true love gave to me:%s", days[i-1], getGifts(i, ""))
+	return "On the " + gifts[i-1].day + " day of Christmas my true love gave to me:" + getGifts(i, "")
 }
 
 func Song() string {
-	var res strings.Builder
-	for i := 1; i <= len(count); i++ {
-		if i != len(count) {
-			res.WriteString(Verse(i) + "\n")
-		} else {
-			res.WriteString(Verse(i))
-		}
+	verses := make([]string, len(gifts))
+
+	n := len("\n") * (len(gifts) - 1)
+	for i := 1; i <= len(gifts); i++ {
+		verse := Verse(i)
+		verses[i-1] = verse
+		n += len(verse)
 	}
-	return res.String()
+
+	var b strings.Builder
+	b.Grow(n)
+	b.WriteString(verses[0])
+
+	for i := 1; i <= len(gifts)-1; i++ {
+		b.WriteString("\n")
+		b.WriteString(verses[i])
+	}
+	return b.String()
 }
