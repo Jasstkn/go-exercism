@@ -11,7 +11,7 @@ type gift struct {
 }
 
 var gifts = []gift{
-	{"first", "one", "a Partridge in a Pear Tree"},
+	{"first", "", "a Partridge in a Pear Tree"},
 	{"second", "two", "Turtle Doves"},
 	{"third", "three", "French Hens"},
 	{"fourth", "four", "Calling Birds"},
@@ -25,18 +25,26 @@ var gifts = []gift{
 	{"twelfth", "twelve", "Drummers Drumming"},
 }
 
-func getGifts(i int, str string) string {
-	if i == 1 && str == "" {
+func getGifts(line int) (res string) {
+	line -= 1
+
+	// if it's first line
+	if line == 0 {
 		return " " + gifts[0].giftName + "."
 	}
-	if i == 1 && str != "" {
-		return str + " and " + gifts[0].giftName + "."
+
+	for i := line; i >= 0; i-- {
+		if i == 0 {
+			res += " and " + gifts[0].giftName + "."
+		} else {
+			res += " " + gifts[i].quantity + " " + gifts[i].giftName + ","
+		}
 	}
-	return getGifts(i-1, str+" "+gifts[i-1].quantity+" "+gifts[i-1].giftName+",")
+	return res
 }
 
 func Verse(i int) string {
-	return "On the " + gifts[i-1].day + " day of Christmas my true love gave to me:" + getGifts(i, "")
+	return "On the " + gifts[i-1].day + " day of Christmas my true love gave to me:" + getGifts(i)
 }
 
 func Song() string {
