@@ -26,17 +26,17 @@ func isInvalid(m [][]string) (bool, error) {
 
 func New(s string) (*Matrix, error) {
 	// remove space after \n, split by \n
-	getRawRows := strings.Split(strings.ReplaceAll(s, "\n ", "\n"), "\n")
+	getRawRows := strings.Split(s, "\n")
 
 	// create a row structure
 	rows := make([][]string, len(getRawRows))
 	for i, r := range getRawRows {
-		rows[i] = strings.Split(r, " ")
+		rows[i] = strings.Split(strings.TrimSpace(r), " ")
 	}
 
 	// validate input matrix
 	if ok, err := isInvalid(rows); !ok {
-		return &Matrix{}, err
+		return nil, err
 	}
 
 	m := Matrix{}
@@ -45,7 +45,7 @@ func New(s string) (*Matrix, error) {
 		for _, v := range r {
 			n, err := strconv.Atoi(v)
 			if err != nil {
-				return &Matrix{}, err
+				return nil, err
 			}
 			m.rows[i] = append(m.rows[i], n)
 		}
