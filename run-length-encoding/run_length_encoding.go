@@ -17,24 +17,27 @@ func RunLengthEncode(input string) (res string) {
 	slice := ""
 	previous := ""
 
+	var b strings.Builder
 	for i := 0; i < len(input); i++ {
-		if string(input[i]) == previous {
-			slice += string(input[i])
+		c := string(input[i])
+		if c == previous {
+			slice += c
 		} else {
-			res += zipSlice(strings.Count(slice, previous), previous)
-			slice = string(input[i])
+			b.WriteString(zipSlice(strings.Count(slice, previous), previous))
+			slice = c
 		}
-		previous = string(input[i])
+		previous = c
 		if i == len(input)-1 {
-			res += zipSlice(strings.Count(slice, previous), previous)
+			b.WriteString(zipSlice(strings.Count(slice, previous), previous))
 		}
 	}
 
-	return res
+	return b.String()
 }
 
-func RunLengthDecode(input string) (res string) {
+func RunLengthDecode(input string) string {
 	number := ""
+	var b strings.Builder
 	for _, v := range input {
 		switch {
 		// check if current symbol is a number
@@ -42,13 +45,13 @@ func RunLengthDecode(input string) (res string) {
 			number += string(v)
 		// number is empty and current symbol isn't a number as well -> it's a single letter
 		case number == "":
-			res += string(v)
+			b.WriteRune(v)
 		// default case when we got the number
 		default:
 			numberInt, _ := strconv.Atoi(number)
-			res += strings.Repeat(string(v), numberInt)
+			b.WriteString(strings.Repeat(string(v), numberInt))
 			number = ""
 		}
 	}
-	return res
+	return b.String()
 }
