@@ -1,31 +1,23 @@
 package diffiehellman
 
 import (
+	"crypto/rand"
 	"math/big"
-	"math/rand"
-	"time"
 )
 
-var rnd = rand.New(rand.NewSource(time.Now().Unix()))
-
 func PrivateKey(p *big.Int) *big.Int {
-	out := big.NewInt(1)
-	// if p == 1
-	if p.Cmp(big.NewInt(1)) == 0 {
-		return out
-	}
-	// generate random (0, p)
-	out.Rand(rnd, p.Abs(p))
+	p = big.NewInt(0).Sub(p, big.NewInt(2))
 
-	// if generated number <= 1
-	if out.Cmp(big.NewInt(1)) <= 0 {
-		out.Add(out, big.NewInt(2))
+	out, err := rand.Int(rand.Reader, p)
+	if err != nil {
+		panic(err)
 	}
-	return out
+
+	return out.Add(out, big.NewInt(2))
 }
 
 func PublicKey(private, p *big.Int, g int64) *big.Int {
-	return new(big.Int).Exp(big.NewInt(g), private, p)
+	return big.NewInt(0).Exp(big.NewInt(g), private, p)
 }
 
 func NewPair(p *big.Int, g int64) (*big.Int, *big.Int) {
@@ -34,5 +26,5 @@ func NewPair(p *big.Int, g int64) (*big.Int, *big.Int) {
 }
 
 func SecretKey(private1, public2, p *big.Int) *big.Int {
-	return new(big.Int).Exp(public2, private1, p)
+	return big.NewInt(0).Exp(public2, private1, p)
 }
