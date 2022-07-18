@@ -2,6 +2,7 @@ package ledger
 
 import (
 	"errors"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -34,24 +35,22 @@ func generateHeading(locale string) ( s string, err error) {
 	return s, err
 }
 
-func FormatLedger(currency string, locale string, entries []Entry) (string, error) {
-	if len(entries) == 0 {
+func FormatLedger(currency string, locale string, inputEntries []Entry) (string, error) {
+	if len(inputEntries) == 0 {
 		if _, err := FormatLedger(currency, "en-US", []Entry{{Date: "2014-01-01", Description: "", Change: 0}}); err != nil {
 			return "", err
 		}
 	}
 
-	entriesCopy := make([]Entry, len(entries))
-	copy(entriesCopy, entries)
+	entries := make([]Entry, len(inputEntries))
+	copy(entries, inputEntries)
 
-	for i, entryFirst := range entriesCopy {
-		for _, e := range entriesCopy[i:] {
-			if e.Date < entryFirst.Date || e.Description < entryFirst.Description || e.Change < entryFirst.Change {
-				entriesCopy[0], entriesCopy[i+1] = entriesCopy[i+1], entriesCopy[0]
-			}
-		}
-	}
+	// sort entries
+	sort.Slice(entries[:], func(i, j int) bool {
+		return entries[i].Date < entries[j].Date || entries[i].Description < entries[j].Description || entries[i].Change < entries[j].Change
+	})
 
+	// generate heading
 	s, err := generateHeading(locale)
 	if err != nil {
 		return "", err
@@ -63,7 +62,7 @@ func FormatLedger(currency string, locale string, entries []Entry) (string, erro
 		s string
 		e error
 	})
-	for i, et := range entriesCopy {
+	for i, et := range entries {
 		go func(i int, entry Entry) {
 			if len(entry.Date) != 10 {
 				co <- struct {
@@ -207,15 +206,15 @@ func FormatLedger(currency string, locale string, entries []Entry) (string, erro
 				strings.Repeat(" ", 13-al) + a + "\n"}
 		}(i, et)
 	}
-	ss := make([]string, len(entriesCopy))
-	for range entriesCopy {
+	ss := make([]string, len(entries))
+	for range entries {
 		v := <-co
 		if v.e != nil {
 			return "", v.e
 		}
 		ss[v.i] = v.s
 	}
-	for i := 0; i < len(entriesCopy); i++ {
+	for i := 0; i < len(entries); i++ {
 		s += ss[i]
 	}
 	return s, nil
