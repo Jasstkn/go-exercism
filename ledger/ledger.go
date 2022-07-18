@@ -12,6 +12,28 @@ type Entry struct {
 	Change      int // in cents
 }
 
+func generateHeading(locale string) ( s string, err error) {
+	switch locale {
+	case "nl-NL":
+		s = "Datum" +
+			strings.Repeat(" ", 10-len("Datum")) +
+			" | " +
+			"Omschrijving" +
+			strings.Repeat(" ", 25-len("Omschrijving")) +
+			" | " + "Verandering" + "\n"
+	case "en-US":
+		s = "Date" +
+			strings.Repeat(" ", 10-len("Date")) +
+			" | " +
+			"Description" +
+			strings.Repeat(" ", 25-len("Description")) +
+			" | " + "Change" + "\n"
+	default:
+		return "", errors.New("")
+	}
+	return s, err
+}
+
 func FormatLedger(currency string, locale string, entries []Entry) (string, error) {
 	if len(entries) == 0 {
 		if _, err := FormatLedger(currency, "en-US", []Entry{{Date: "2014-01-01", Description: "", Change: 0}}); err != nil {
@@ -30,24 +52,11 @@ func FormatLedger(currency string, locale string, entries []Entry) (string, erro
 		}
 	}
 
-	var s string
-	if locale == "nl-NL" {
-		s = "Datum" +
-			strings.Repeat(" ", 10-len("Datum")) +
-			" | " +
-			"Omschrijving" +
-			strings.Repeat(" ", 25-len("Omschrijving")) +
-			" | " + "Verandering" + "\n"
-	} else if locale == "en-US" {
-		s = "Date" +
-			strings.Repeat(" ", 10-len("Date")) +
-			" | " +
-			"Description" +
-			strings.Repeat(" ", 25-len("Description")) +
-			" | " + "Change" + "\n"
-	} else {
-		return "", errors.New("")
+	s, err := generateHeading(locale)
+	if err != nil {
+		return "", err
 	}
+
 	// Parallelism, always a great idea
 	co := make(chan struct {
 		i int
