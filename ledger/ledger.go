@@ -61,6 +61,13 @@ func parseDate(date string, locale string) (string, error) {
 	return out, nil
 }
 
+func generateDescription(input string) string {
+	if len(input) > descriptionWidth {
+		return input[:22] + "..."
+	}
+	return input + strings.Repeat(" ", descriptionWidth-len(input))
+}
+
 func FormatLedger(currency string, locale string, inputEntries []Entry) (string, error) {
 	if len(inputEntries) == 0 {
 		if _, err := FormatLedger(currency, "en-US", []Entry{{Date: "2014-01-01", Description: "", Change: 0}}); err != nil {
@@ -91,7 +98,7 @@ func FormatLedger(currency string, locale string, inputEntries []Entry) (string,
 
 	for i, et := range entries {
 		go func(i int, entry Entry) {
-			d, err := parseDate(entry.Date, locale)
+			date, err := parseDate(entry.Date, locale)
 			if err != nil {
 				co <- struct {
 					i int
@@ -100,12 +107,7 @@ func FormatLedger(currency string, locale string, inputEntries []Entry) (string,
 				}{e: errors.New("")}
 			}
 
-			de := entry.Description
-			if len(de) > descriptionWidth {
-				de = de[:22] + "..."
-			} else {
-				de += strings.Repeat(" ", descriptionWidth-len(de))
-			}
+			description := generateDescription(entry.Description)
 
 			negative := false
 			cents := entry.Change
@@ -212,7 +214,7 @@ func FormatLedger(currency string, locale string, inputEntries []Entry) (string,
 				i int
 				s string
 				e error
-			}{i: i, s: d + strings.Repeat(" ", 10-len(d)) + " | " + de + " | " +
+			}{i: i, s: date + strings.Repeat(" ", 10-len(date)) + " | " + description + " | " +
 				strings.Repeat(" ", 13-al) + a + "\n"}
 		}(i, et)
 	}
