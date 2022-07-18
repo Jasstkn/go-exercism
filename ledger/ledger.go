@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type Entry struct {
@@ -13,7 +14,7 @@ type Entry struct {
 	Change      int // in cents
 }
 
-func generateHeading(locale string) ( s string, err error) {
+func generateHeading(locale string) (s string, err error) {
 	switch locale {
 	case "nl-NL":
 		s = "Datum" +
@@ -62,6 +63,9 @@ func FormatLedger(currency string, locale string, inputEntries []Entry) (string,
 		s string
 		e error
 	})
+
+	const layout = "2006-01-02"
+
 	for i, et := range entries {
 		go func(i int, entry Entry) {
 			if len(entry.Date) != 10 {
@@ -71,39 +75,36 @@ func FormatLedger(currency string, locale string, inputEntries []Entry) (string,
 					e error
 				}{e: errors.New("")}
 			}
-			d1, d2, d3, d4, d5 := entry.Date[0:4], entry.Date[4], entry.Date[5:7], entry.Date[7], entry.Date[8:10]
-			if d2 != '-' {
+			date, err := time.Parse(layout, entry.Date)
+			if err != nil {
 				co <- struct {
 					i int
 					s string
 					e error
 				}{e: errors.New("")}
 			}
-			if d4 != '-' {
-				co <- struct {
-					i int
-					s string
-					e error
-				}{e: errors.New("")}
+			var d string
+			switch locale {
+			case "nl-NL":
+				d = date.Format("02-01-2006")
+			case "en-US":
+				d = date.Format("01/02/2006")
 			}
+
 			de := entry.Description
 			if len(de) > 25 {
 				de = de[:22] + "..."
 			} else {
-				de = de + strings.Repeat(" ", 25-len(de))
+				de += strings.Repeat(" ", 25-len(de))
 			}
-			var d string
-			if locale == "nl-NL" {
-				d = d5 + "-" + d3 + "-" + d1
-			} else if locale == "en-US" {
-				d = d3 + "/" + d5 + "/" + d1
-			}
+
 			negative := false
 			cents := entry.Change
 			if cents < 0 {
-				cents = cents * -1
+				cents *= -1
 				negative = true
 			}
+
 			var a string
 			if locale == "nl-NL" {
 				if currency == "EUR" {
