@@ -13,14 +13,15 @@ type Entry struct {
 }
 
 func FormatLedger(currency string, locale string, entries []Entry) (string, error) {
-	var entriesCopy []Entry
-	entriesCopy = append(entriesCopy, entries...)
-
 	if len(entries) == 0 {
 		if _, err := FormatLedger(currency, "en-US", []Entry{{Date: "2014-01-01", Description: "", Change: 0}}); err != nil {
 			return "", err
 		}
 	}
+
+	entriesCopy := make([]Entry, len(entries))
+	copy(entriesCopy, entries)
+
 	m1 := map[bool]int{true: 0, false: 1}
 	m2 := map[bool]int{true: -1, false: 1}
 	es := entriesCopy
