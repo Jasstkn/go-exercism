@@ -17,6 +17,8 @@ type Entry struct {
 const (
 	descriptionWidth = 25
 	dateWidth        = 10
+
+	layout = "2006-01-02"
 )
 
 func generateHeading(locale string) (s string, err error) {
@@ -39,6 +41,24 @@ func generateHeading(locale string) (s string, err error) {
 		return "", errors.New("")
 	}
 	return s, err
+}
+
+func parseDate(date string, locale string) (string, error) {
+	d, err := time.Parse(layout, date)
+	if err != nil {
+		return "", errors.New("")
+	}
+
+	var out string
+	switch locale {
+	case "nl-NL":
+		out = d.Format("02-01-2006")
+	case "en-US":
+		out = d.Format("01/02/2006")
+	default:
+		return "", errors.New("")
+	}
+	return out, nil
 }
 
 func FormatLedger(currency string, locale string, inputEntries []Entry) (string, error) {
@@ -69,25 +89,10 @@ func FormatLedger(currency string, locale string, inputEntries []Entry) (string,
 		e error
 	})
 
-	const layout = "2006-01-02"
-
 	for i, et := range entries {
 		go func(i int, entry Entry) {
-			date, err := time.Parse(layout, entry.Date)
+			d, err := parseDate(entry.Date, locale)
 			if err != nil {
-				co <- struct {
-					i int
-					s string
-					e error
-				}{e: errors.New("")}
-			}
-			var d string
-			switch locale {
-			case "nl-NL":
-				d = date.Format("02-01-2006")
-			case "en-US":
-				d = date.Format("01/02/2006")
-			default:
 				co <- struct {
 					i int
 					s string
