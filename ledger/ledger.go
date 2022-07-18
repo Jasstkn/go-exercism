@@ -14,21 +14,26 @@ type Entry struct {
 	Change      int // in cents
 }
 
+const (
+	descriptionWidth = 25
+	dateWidth        = 10
+)
+
 func generateHeading(locale string) (s string, err error) {
 	switch locale {
 	case "nl-NL":
 		s = "Datum" +
-			strings.Repeat(" ", 10-len("Datum")) +
+			strings.Repeat(" ", dateWidth-len("Datum")) +
 			" | " +
 			"Omschrijving" +
-			strings.Repeat(" ", 25-len("Omschrijving")) +
+			strings.Repeat(" ", descriptionWidth-len("Omschrijving")) +
 			" | " + "Verandering" + "\n"
 	case "en-US":
 		s = "Date" +
-			strings.Repeat(" ", 10-len("Date")) +
+			strings.Repeat(" ", dateWidth-len("Date")) +
 			" | " +
 			"Description" +
-			strings.Repeat(" ", 25-len("Description")) +
+			strings.Repeat(" ", descriptionWidth-len("Description")) +
 			" | " + "Change" + "\n"
 	default:
 		return "", errors.New("")
@@ -68,13 +73,6 @@ func FormatLedger(currency string, locale string, inputEntries []Entry) (string,
 
 	for i, et := range entries {
 		go func(i int, entry Entry) {
-			if len(entry.Date) != 10 {
-				co <- struct {
-					i int
-					s string
-					e error
-				}{e: errors.New("")}
-			}
 			date, err := time.Parse(layout, entry.Date)
 			if err != nil {
 				co <- struct {
@@ -89,13 +87,19 @@ func FormatLedger(currency string, locale string, inputEntries []Entry) (string,
 				d = date.Format("02-01-2006")
 			case "en-US":
 				d = date.Format("01/02/2006")
+			default:
+				co <- struct {
+					i int
+					s string
+					e error
+				}{e: errors.New("")}
 			}
 
 			de := entry.Description
-			if len(de) > 25 {
+			if len(de) > descriptionWidth {
 				de = de[:22] + "..."
 			} else {
-				de += strings.Repeat(" ", 25-len(de))
+				de += strings.Repeat(" ", descriptionWidth-len(de))
 			}
 
 			negative := false
