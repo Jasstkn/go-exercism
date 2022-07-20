@@ -73,7 +73,7 @@ func isNegative(input int) bool {
 	return input < 0
 }
 
-func generateCurrency(currency string) (string, error) {
+func getCurrency(currency string) (string, error) {
 	var out string
 	switch currency {
 	case "EUR":
@@ -97,10 +97,10 @@ func generateChangeLeadingZeros(input string) string {
 	}
 }
 
-func generateChangeValue(input string, separator string) (out string) {
+func formatIntegerChange(input string, separator string) (out string) {
 	var parts []string
 
-	for len(input) > 3 {
+	if len(input) > 3 {
 		parts = append(parts, input[len(input)-3:])
 		input = input[:len(input)-3]
 	}
@@ -108,11 +108,15 @@ func generateChangeValue(input string, separator string) (out string) {
 	if len(input) > 0 {
 		parts = append(parts, input)
 	}
-	for i := len(parts) - 1; i >= 0; i-- {
-		out += parts[i] + separator
+
+	// reverse array
+	for i, j := 0, len(parts)-1; i < j; i, j = i+1, j-1 {
+		parts[i], parts[j] = parts[j], parts[i]
+		i++
+		j--
 	}
 
-	return out
+	return strings.Join(parts, separator)
 }
 
 func generateChange(locale, currency string, change int, isNegative bool) (string, error) {
@@ -122,7 +126,7 @@ func generateChange(locale, currency string, change int, isNegative bool) (strin
 
 	switch locale {
 	case "nl-NL":
-		outCurrency, err := generateCurrency(currency)
+		outCurrency, err := getCurrency(currency)
 		if err != nil {
 			return "", err
 		}
@@ -131,9 +135,9 @@ func generateChange(locale, currency string, change int, isNegative bool) (strin
 		fullChange := generateChangeLeadingZeros(changeStr)
 		intChange := fullChange[:len(fullChange)-2]
 
-		out += generateChangeValue(intChange, ".")
+		out += formatIntegerChange(intChange, ".")
 
-		out = out[:len(out)-1] + "," + fullChange[len(fullChange)-2:]
+		out += "," + fullChange[len(fullChange)-2:]
 
 		if isNegative {
 			out += "-"
@@ -141,21 +145,20 @@ func generateChange(locale, currency string, change int, isNegative bool) (strin
 			out += " "
 		}
 	case "en-US":
-
-		outCurrency, err := generateCurrency(currency)
+		outCurrency, err := getCurrency(currency)
 		if err != nil {
 			return "", err
 		}
 		out += outCurrency
 
 		fullChange := generateChangeLeadingZeros(changeStr)
-		decimal := fullChange[len(fullChange)-2:]
-		// remove last 2 digits
-		intChange := fullChange[:len(fullChange)-2]
+		// get integer and decimal parts of the number
+		intChange, decimal := fullChange[:len(fullChange)-2], fullChange[len(fullChange)-2:]
 
-		out += generateChangeValue(intChange, ",")
+		// format integer part
+		out += formatIntegerChange(intChange, ",")
 
-		out = out[:len(out)-1] + "." + decimal
+		out += "." + decimal
 
 		if isNegative {
 			out = "(" + out + ")"
