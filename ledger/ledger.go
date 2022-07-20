@@ -2,6 +2,7 @@ package ledger
 
 import (
 	"errors"
+	"math"
 	"sort"
 	"strconv"
 	"strings"
@@ -68,6 +69,105 @@ func generateDescription(input string) string {
 	return input + strings.Repeat(" ", descriptionWidth-len(input))
 }
 
+func isNegative(input int) bool {
+	return input < 0
+}
+
+func generateCurrency(currency string) (string, error) {
+	var out string
+	switch currency {
+	case "EUR":
+		out = "€"
+	case "USD":
+		out = "$"
+	default:
+		return "", errors.New("")
+	}
+	return out, nil
+}
+
+func generateChangeLeadingZeros(input string) string {
+	switch len(input) {
+	case 1:
+		return "00" + input
+	case 2:
+		return "0" + input
+	default:
+		return input
+	}
+}
+
+func generateChangeValue(input string, separator string) (out string) {
+	var parts []string
+
+	for len(input) > 3 {
+		parts = append(parts, input[len(input)-3:])
+		input = input[:len(input)-3]
+	}
+
+	if len(input) > 0 {
+		parts = append(parts, input)
+	}
+	for i := len(parts) - 1; i >= 0; i-- {
+		out += parts[i] + separator
+	}
+
+	return out
+}
+
+func generateChange(locale, currency string, change int, isNegative bool) (string, error) {
+	var out string
+
+	changeStr := strconv.Itoa(change)
+
+	switch locale {
+	case "nl-NL":
+		outCurrency, err := generateCurrency(currency)
+		if err != nil {
+			return "", err
+		}
+		out += outCurrency + " "
+
+		fullChange := generateChangeLeadingZeros(changeStr)
+		intChange := fullChange[:len(fullChange)-2]
+
+		out += generateChangeValue(intChange, ".")
+
+		out = out[:len(out)-1] + "," + fullChange[len(fullChange)-2:]
+
+		if isNegative {
+			out += "-"
+		} else {
+			out += " "
+		}
+	case "en-US":
+
+		outCurrency, err := generateCurrency(currency)
+		if err != nil {
+			return "", err
+		}
+		out += outCurrency
+
+		fullChange := generateChangeLeadingZeros(changeStr)
+		decimal := fullChange[len(fullChange)-2:]
+		// remove last 2 digits
+		intChange := fullChange[:len(fullChange)-2]
+
+		out += generateChangeValue(intChange, ",")
+
+		out = out[:len(out)-1] + "." + decimal
+
+		if isNegative {
+			out = "(" + out + ")"
+		} else {
+			out = out + " "
+		}
+	default:
+		return "", errors.New("")
+	}
+	return out, nil
+}
+
 func FormatLedger(currency string, locale string, inputEntries []Entry) (string, error) {
 	if len(inputEntries) == 0 {
 		if _, err := FormatLedger(currency, "en-US", []Entry{{Date: "2014-01-01", Description: "", Change: 0}}); err != nil {
@@ -109,105 +209,18 @@ func FormatLedger(currency string, locale string, inputEntries []Entry) (string,
 
 			description := generateDescription(entry.Description)
 
-			negative := false
-			cents := entry.Change
-			if cents < 0 {
-				cents *= -1
-				negative = true
-			}
-
-			var a string
-			if locale == "nl-NL" {
-				if currency == "EUR" {
-					a += "€"
-				} else if currency == "USD" {
-					a += "$"
-				} else {
-					co <- struct {
-						i int
-						s string
-						e error
-					}{e: errors.New("")}
-				}
-				a += " "
-				centsStr := strconv.Itoa(cents)
-				switch len(centsStr) {
-				case 1:
-					centsStr = "00" + centsStr
-				case 2:
-					centsStr = "0" + centsStr
-				}
-				rest := centsStr[:len(centsStr)-2]
-				var parts []string
-				for len(rest) > 3 {
-					parts = append(parts, rest[len(rest)-3:])
-					rest = rest[:len(rest)-3]
-				}
-				if len(rest) > 0 {
-					parts = append(parts, rest)
-				}
-				for i := len(parts) - 1; i >= 0; i-- {
-					a += parts[i] + "."
-				}
-				a = a[:len(a)-1]
-				a += ","
-				a += centsStr[len(centsStr)-2:]
-				if negative {
-					a += "-"
-				} else {
-					a += " "
-				}
-			} else if locale == "en-US" {
-				if negative {
-					a += "("
-				}
-				if currency == "EUR" {
-					a += "€"
-				} else if currency == "USD" {
-					a += "$"
-				} else {
-					co <- struct {
-						i int
-						s string
-						e error
-					}{e: errors.New("")}
-				}
-				centsStr := strconv.Itoa(cents)
-				switch len(centsStr) {
-				case 1:
-					centsStr = "00" + centsStr
-				case 2:
-					centsStr = "0" + centsStr
-				}
-				rest := centsStr[:len(centsStr)-2]
-				var parts []string
-				for len(rest) > 3 {
-					parts = append(parts, rest[len(rest)-3:])
-					rest = rest[:len(rest)-3]
-				}
-				if len(rest) > 0 {
-					parts = append(parts, rest)
-				}
-				for i := len(parts) - 1; i >= 0; i-- {
-					a += parts[i] + ","
-				}
-				a = a[:len(a)-1]
-				a += "."
-				a += centsStr[len(centsStr)-2:]
-				if negative {
-					a += ")"
-				} else {
-					a += " "
-				}
-			} else {
+			changeAbs := math.Abs(float64(entry.Change))
+			change, err := generateChange(locale, currency, int(changeAbs), isNegative(entry.Change))
+			if err != nil {
 				co <- struct {
 					i int
 					s string
 					e error
 				}{e: errors.New("")}
 			}
+
 			var al int
-			for range a {
+			for range change {
 				al++
 			}
 			co <- struct {
@@ -215,7 +228,7 @@ func FormatLedger(currency string, locale string, inputEntries []Entry) (string,
 				s string
 				e error
 			}{i: i, s: date + strings.Repeat(" ", 10-len(date)) + " | " + description + " | " +
-				strings.Repeat(" ", 13-al) + a + "\n"}
+				strings.Repeat(" ", 13-al) + change + "\n"}
 		}(i, et)
 	}
 	ss := make([]string, len(entries))
