@@ -168,11 +168,20 @@ func generateChange(locale, currency string, change int, isNegative bool) (strin
 	return out, nil
 }
 
+func currencyIsValid(currency string) bool {
+	switch currency {
+	case
+		"USD",
+		"EUR":
+		return true
+	default:
+		return false
+	}
+}
+
 func FormatLedger(currency string, locale string, inputEntries []Entry) (string, error) {
-	if len(inputEntries) == 0 {
-		if _, err := FormatLedger(currency, "en-US", []Entry{{Date: "2014-01-01", Description: "", Change: 0}}); err != nil {
-			return "", err
-		}
+	if !currencyIsValid(currency) {
+		return "", errors.New("")
 	}
 
 	entries := make([]Entry, len(inputEntries))
