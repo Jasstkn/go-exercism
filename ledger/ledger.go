@@ -64,8 +64,9 @@ func parseDate(date string, locale string) (string, error) {
 }
 
 func generateDescription(input string) string {
+	separator := "..."
 	if len(input) > descriptionWidth {
-		return input[:22] + "..."
+		return input[:descriptionWidth-len(separator)] + separator
 	}
 	return input + strings.Repeat(" ", descriptionWidth-len(input))
 }
@@ -113,8 +114,6 @@ func formatIntegerChange(input string, separator string) (out string) {
 	// reverse array
 	for i, j := 0, len(parts)-1; i < j; i, j = i+1, j-1 {
 		parts[i], parts[j] = parts[j], parts[i]
-		i++
-		j--
 	}
 
 	return strings.Join(parts, separator)
@@ -134,11 +133,10 @@ func generateChange(locale, currency string, change int, isNegative bool) (strin
 		out += outCurrency + " "
 
 		fullChange := generateChangeLeadingZeros(changeStr)
-		intChange := fullChange[:len(fullChange)-2]
+		intChange, decimal := fullChange[:len(fullChange)-2], fullChange[len(fullChange)-2:]
 
-		out += formatIntegerChange(intChange, ".")
-
-		out += "," + fullChange[len(fullChange)-2:]
+		// concatenate integer and decimal parts
+		out += formatIntegerChange(intChange, ".") + "," + decimal
 
 		if isNegative {
 			out += "-"
@@ -156,10 +154,8 @@ func generateChange(locale, currency string, change int, isNegative bool) (strin
 		// get integer and decimal parts of the number
 		intChange, decimal := fullChange[:len(fullChange)-2], fullChange[len(fullChange)-2:]
 
-		// format integer part
-		out += formatIntegerChange(intChange, ",")
-
-		out += "." + decimal
+		// concatenate integer and decimal parts
+		out += formatIntegerChange(intChange, ",") + "." + decimal
 
 		if isNegative {
 			out = "(" + out + ")"
