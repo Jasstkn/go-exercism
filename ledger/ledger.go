@@ -18,6 +18,7 @@ type Entry struct {
 const (
 	descriptionWidth = 25
 	dateWidth        = 10
+	changeWidth      = 13
 
 	layout = "2006-01-02"
 )
@@ -187,23 +188,23 @@ func FormatLedger(currency string, locale string, inputEntries []Entry) (string,
 	})
 
 	// generate heading
-	s, err := generateHeading(locale)
+	heading, err := generateHeading(locale)
 	if err != nil {
 		return "", err
 	}
 
 	// Parallelism, always a great idea
-	co := make(chan struct {
+	ch := make(chan struct {
 		i int
 		s string
 		e error
 	})
 
-	for i, et := range entries {
+	for i, entry := range entries {
 		go func(i int, entry Entry) {
 			date, err := parseDate(entry.Date, locale)
 			if err != nil {
-				co <- struct {
+				ch <- struct {
 					i int
 					s string
 					e error
@@ -215,35 +216,29 @@ func FormatLedger(currency string, locale string, inputEntries []Entry) (string,
 			changeAbs := math.Abs(float64(entry.Change))
 			change, err := generateChange(locale, currency, int(changeAbs), isNegative(entry.Change))
 			if err != nil {
-				co <- struct {
+				ch <- struct {
 					i int
 					s string
 					e error
 				}{e: errors.New("")}
 			}
 
-			var al int
-			for range change {
-				al++
-			}
-			co <- struct {
+			ch <- struct {
 				i int
 				s string
 				e error
-			}{i: i, s: date + strings.Repeat(" ", 10-len(date)) + " | " + description + " | " +
-				strings.Repeat(" ", 13-al) + change + "\n"}
-		}(i, et)
+			}{i: i, s: date + strings.Repeat(" ", dateWidth-len(date)) + " | " + description + " | " +
+				strings.Repeat(" ", changeWidth-len([]rune(change))) + change + "\n"}
+		}(i, entry)
 	}
-	ss := make([]string, len(entries))
+	body := make([]string, len(entries))
 	for range entries {
-		v := <-co
-		if v.e != nil {
-			return "", v.e
+		entry := <-ch
+		if entry.e != nil {
+			return "", entry.e
 		}
-		ss[v.i] = v.s
+		body[entry.i] = entry.s
 	}
-	for i := 0; i < len(entries); i++ {
-		s += ss[i]
-	}
-	return s, nil
+
+	return heading + strings.Join(body, ""), nil
 }
