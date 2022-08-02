@@ -16,33 +16,30 @@ type Entry struct {
 }
 
 const (
-	descriptionWidth = 25
 	dateWidth        = 10
 	changeWidth      = 13
+	descriptionWidth = 25
 
 	layout = "2006-01-02"
 )
 
-func generateHeading(locale string) (s string, err error) {
+func generateHeading(locale string) (string, error) {
+	var date, description, change string
 	switch locale {
 	case "nl-NL":
-		s = "Datum" +
-			strings.Repeat(" ", dateWidth-len("Datum")) +
-			" | " +
-			"Omschrijving" +
-			strings.Repeat(" ", descriptionWidth-len("Omschrijving")) +
-			" | " + "Verandering" + "\n"
+		date = "Datum"
+		description = "Omschrijving"
+		change = "Verandering"
 	case "en-US":
-		s = "Date" +
-			strings.Repeat(" ", dateWidth-len("Date")) +
-			" | " +
-			"Description" +
-			strings.Repeat(" ", descriptionWidth-len("Description")) +
-			" | " + "Change" + "\n"
+		date = "Date"
+		description = "Description"
+		change = "Change"
 	default:
-		return "", errors.New("")
+		return "", errors.New("wrong locale. possible options: [nl-NL, en-US]")
 	}
-	return s, err
+	return date + strings.Repeat(" ", dateWidth-len(date)) + " | " +
+		description + strings.Repeat(" ", descriptionWidth-len(description)) + " | " +
+		change + "\n", nil
 }
 
 func parseDate(date string, locale string) (string, error) {
