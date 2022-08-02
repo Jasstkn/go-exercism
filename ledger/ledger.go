@@ -21,6 +21,7 @@ const (
 	descriptionWidth = 25
 
 	layout = "2006-01-02"
+	errorMessageLocale = "wrong locale. possible options: [nl-NL, en-US]"
 )
 
 func generateHeading(locale string) (string, error) {
@@ -35,7 +36,7 @@ func generateHeading(locale string) (string, error) {
 		description = "Description"
 		change = "Change"
 	default:
-		return "", errors.New("wrong locale. possible options: [nl-NL, en-US]")
+		return "", errors.New(errorMessageLocale)
 	}
 	return date + strings.Repeat(" ", dateWidth-len(date)) + " | " +
 		description + strings.Repeat(" ", descriptionWidth-len(description)) + " | " +
@@ -45,7 +46,7 @@ func generateHeading(locale string) (string, error) {
 func parseDate(date string, locale string) (string, error) {
 	d, err := time.Parse(layout, date)
 	if err != nil {
-		return "", errors.New("")
+		return "", errors.New("can't parse the date")
 	}
 
 	var out string
@@ -55,7 +56,7 @@ func parseDate(date string, locale string) (string, error) {
 	case "en-US":
 		out = d.Format("01/02/2006")
 	default:
-		return "", errors.New("")
+		return "", errors.New(errorMessageLocale)
 	}
 	return out, nil
 }
@@ -80,7 +81,7 @@ func getCurrency(currency string) (string, error) {
 	case "USD":
 		out = "$"
 	default:
-		return "", errors.New("")
+		return "", errors.New(errorMessageLocale)
 	}
 	return out, nil
 }
@@ -117,51 +118,45 @@ func formatIntegerChange(input string, separator string) (out string) {
 }
 
 func generateChange(locale, currency string, change int, isNegative bool) (string, error) {
-	var out string
+	var out, separator, intSeparator, decimalSeparator, negativeLeft, negativeRight string
 
 	changeStr := strconv.Itoa(change)
 
 	switch locale {
 	case "nl-NL":
-		outCurrency, err := getCurrency(currency)
-		if err != nil {
-			return "", err
-		}
-		out += outCurrency + " "
-
-		fullChange := generateChangeLeadingZeros(changeStr)
-		intChange, decimal := fullChange[:len(fullChange)-2], fullChange[len(fullChange)-2:]
-
-		// concatenate integer and decimal parts
-		out += formatIntegerChange(intChange, ".") + "," + decimal
+		separator, intSeparator, decimalSeparator = " ", ".", ","
 
 		if isNegative {
-			out += "-"
+			negativeRight = "-"
 		} else {
-			out += " "
+			negativeRight = " "
 		}
 	case "en-US":
-		outCurrency, err := getCurrency(currency)
-		if err != nil {
-			return "", err
-		}
-		out += outCurrency
-
-		fullChange := generateChangeLeadingZeros(changeStr)
-		// get integer and decimal parts of the number
-		intChange, decimal := fullChange[:len(fullChange)-2], fullChange[len(fullChange)-2:]
-
-		// concatenate integer and decimal parts
-		out += formatIntegerChange(intChange, ",") + "." + decimal
+		separator, intSeparator, decimalSeparator = "", ",", "."
 
 		if isNegative {
-			out = "(" + out + ")"
+			negativeLeft = "("
+			negativeRight = ")"
 		} else {
-			out = out + " "
+			negativeRight = " "
 		}
 	default:
-		return "", errors.New("")
+		return "", errors.New(errorMessageLocale)
 	}
+
+	outCurrency, err := getCurrency(currency)
+	if err != nil {
+		return "", err
+	}
+	out += outCurrency + separator
+
+	fullChange := generateChangeLeadingZeros(changeStr)
+	// integer and decimal parts
+	intChange, decimal := fullChange[:len(fullChange)-2], fullChange[len(fullChange)-2:]
+	out += formatIntegerChange(intChange, intSeparator) + decimalSeparator + decimal
+	// negative
+	out = negativeLeft + out + negativeRight
+
 	return out, nil
 }
 
@@ -178,7 +173,7 @@ func currencyIsValid(currency string) bool {
 
 func FormatLedger(currency string, locale string, inputEntries []Entry) (string, error) {
 	if !currencyIsValid(currency) {
-		return "", errors.New("")
+		return "", errors.New(errorMessageLocale)
 	}
 
 	entries := make([]Entry, len(inputEntries))
@@ -210,7 +205,7 @@ func FormatLedger(currency string, locale string, inputEntries []Entry) (string,
 					i int
 					s string
 					e error
-				}{e: errors.New("")}
+				}{e: err}
 			}
 
 			description := generateDescription(entry.Description)
@@ -222,7 +217,7 @@ func FormatLedger(currency string, locale string, inputEntries []Entry) (string,
 					i int
 					s string
 					e error
-				}{e: errors.New("")}
+				}{e: err}
 			}
 
 			ch <- struct {
